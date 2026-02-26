@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LungsAI | Advanced Respiratory Intelligence</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { --primary: #3b82f6; --danger: #f43f5e; --success: #10b981; }
+        body { background: #070a13; font-family: 'Inter', sans-serif; color: #e2e8f0; }
+        
+        /* Glassmorphism */
+        .glass-card { 
+            background: rgba(15, 23, 42, 0.6); 
+            backdrop-filter: blur(12px); 
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        /* Breathing Animation for the Lung Icon */
+        @keyframes breathe {
+            0%, 100% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.1); opacity: 1; }
+        }
+        .lung-breathe { animation: breathe 3s ease-in-out infinite; }
+        .lung-heavy { animation: breathe 1s ease-in-out infinite; color: var(--danger); }
+
+        .gradient-text {
+            background: linear-gradient(90deg, #60a5fa, #34d399);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+    </style>
+</head>
+<body>
+
+    <aside class="fixed left-0 top-0 h-full w-20 border-r border-slate-800 bg-[#0b0f1a] flex flex-col items-center py-8 gap-8 z-50">
+        <div class="text-blue-500 text-2xl mb-4"><i class="fas fa-lungs-virus"></i></div>
+        <button onclick="switchTab('dash')" class="nav-btn text-blue-400"><i class="fas fa-th-large text-xl"></i></button>
+        <button onclick="switchTab('map')" class="nav-btn text-slate-500 hover:text-white transition"><i class="fas fa-map-marked-alt text-xl"></i></button>
+        <button onclick="switchTab('report')" class="nav-btn text-slate-500 hover:text-white transition"><i class="fas fa-file-medical-alt text-xl"></i></button>
+    </aside>
+
+    <main class="ml-20 p-8">
+        
+        <header class="flex justify-between items-center mb-10">
+            <div>
+                <h1 class="text-3xl font-black gradient-text">LungsAI Dashboard</h1>
+                <p class="text-slate-500 text-sm">Syncing with Apple Watch & Local Sensors...</p>
+            </div>
+            <div class="flex gap-4">
+                <div class="glass-card px-4 py-2 rounded-2xl border border-blue-500/20 text-xs">
+                    <span class="text-blue-400">● Live Connection:</span> ESP32_Node_01
+                </div>
+            </div>
+        </header>
+
+        <div id="dash-view" class="space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                
+                <div class="glass-card p-6 rounded-[2rem] col-span-1 flex flex-col items-center justify-center text-center">
+                    <h3 class="text-xs font-bold text-slate-500 uppercase mb-6">Internal Lung Strain</h3>
+                    <div id="lung-icon" class="lung-breathe text-6xl text-blue-400 mb-4">
+                        <i class="fas fa-lungs"></i>
+                    </div>
+                    <div class="text-4xl font-black">Moderate</div>
+                    <p class="text-xs text-slate-400 mt-2 italic">Breathing rate: 18 bpm</p>
+                </div>
+
+                <div class="glass-card p-6 rounded-[2rem] col-span-1">
+                    <h3 class="text-xs font-bold text-slate-500 uppercase mb-4">Estimated Lung Age</h3>
+                    <div class="text-5xl font-black text-emerald-400">32 <span class="text-sm font-normal text-slate-500">Years</span></div>
+                    <div class="mt-4 p-3 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
+                        <p class="text-[10px] text-emerald-300 tracking-wide">YOUR LUNGS ARE 4 YEARS YOUNGER THAN YOUR ACTUAL AGE.</p>
+                    </div>
+                </div>
+
+                <div class="glass-card p-6 rounded-[2rem] col-span-2">
+                    <h3 class="text-xs font-bold text-slate-500 uppercase mb-4">Live Micro-Pollutants (µg/m³)</h3>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="text-center">
+                            <div class="text-xl font-bold text-white">42</div>
+                            <div class="text-[10px] text-slate-500">PM 2.5</div>
+                            <div class="h-1 w-full bg-yellow-500 mt-2 rounded"></div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-xl font-bold text-white">12</div>
+                            <div class="text-[10px] text-slate-500">NO2</div>
+                            <div class="h-1 w-full bg-emerald-500 mt-2 rounded"></div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-xl font-bold text-white">84</div>
+                            <div class="text-[10px] text-slate-500">O3 (Ozone)</div>
+                            <div class="h-1 w-full bg-red-500 mt-2 rounded"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="glass-card p-8 rounded-[2rem] lg:col-span-2">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="font-bold">Exposure vs. Vital Response</h3>
+                        <div class="flex gap-4 text-[10px]">
+                            <span class="flex items-center gap-1"><i class="fas fa-circle text-blue-500"></i> AQI</span>
+                            <span class="flex items-center gap-1"><i class="fas fa-circle text-rose-500"></i> HEART RATE</span>
+                        </div>
+                    </div>
+                    <div class="h-64">
+                        <canvas id="mainChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="space-y-6">
+                    <div class="glass-card p-6 rounded-[2rem] bg-gradient-to-br from-blue-600/10 to-transparent">
+                        <h3 class="font-bold mb-4 flex items-center gap-2"><i class="fas fa-robot"></i> AI Health Coach</h3>
+                        <p class="text-sm leading-relaxed text-slate-300 italic">
+                            "I've noticed your $SpO_2$ drops slightly when $O_3$ levels exceed 80. Avoid the park route today; take the subway instead to minimize exposure."
+                        </p>
+                    </div>
+                    <div class="glass-card p-6 rounded-[2rem]">
+                        <h3 class="text-xs font-bold text-slate-500 uppercase mb-4">Risk Forecast</h3>
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm">Asthma Trigger Risk</span>
+                            <span class="text-yellow-500 font-bold">24%</span>
+                        </div>
+                        <div class="w-full bg-slate-800 h-2 rounded-full mt-2">
+                            <div class="bg-yellow-500 h-full rounded-full" style="width: 24%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="map-view" class="hidden glass-card p-8 rounded-[2rem] min-h-[600px] relative">
+            <h3 class="text-xl font-bold mb-4">Safe Route Optimizer</h3>
+            <div class="bg-slate-800 w-full h-[500px] rounded-2xl flex items-center justify-center overflow-hidden relative">
+                 <div class="absolute inset-0 opacity-40 bg-[url('https://api.mapbox.com/styles/v1/mapbox/dark-v10/static/-73.99,40.71,12/800x500?access_token=MOCK')] bg-cover"></div>
+                 <div class="relative z-10 text-center">
+                    <i class="fas fa-map-marker-alt text-red-500 text-4xl mb-2"></i>
+                    <p class="font-bold">High Pollution Hotspot Detected</p>
+                    <p class="text-xs text-slate-400">Sector 4 reported 150+ AQI</p>
+                 </div>
+            </div>
+        </div>
+
+    </main>
+
+    
+
+    <script>
+        // Tab Switching Logic
+        function switchTab(tab) {
+            document.getElementById('dash-view').classList.add('hidden');
+            document.getElementById('map-view').classList.add('hidden');
+            if(tab === 'dash') document.getElementById('dash-view').classList.remove('hidden');
+            if(tab === 'map') document.getElementById('map-view').classList.remove('hidden');
+        }
+
+        // Advanced Charting
+        const ctx = document.getElementById('mainChart').getContext('2d');
+        const mainChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['12pm', '1pm', '2pm', '3pm', '4pm', '5pm', '6pm'],
+                datasets: [{
+                    label: 'Lung Strain Index',
+                    data: [20, 35, 70, 45, 90, 65, 30],
+                    borderColor: '#f43f5e',
+                    borderWidth: 4,
+                    pointRadius: 0,
+                    tension: 0.4,
+                    fill: true,
+                    backgroundColor: 'rgba(244, 63, 94, 0.05)'
+                }, {
+                    label: 'Local AQI',
+                    data: [40, 50, 110, 80, 130, 100, 50],
+                    borderColor: '#3b82f6',
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    pointRadius: 0,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { display: false }, ticks: { color: '#64748b' } },
+                    y: { grid: { color: '#1e293b' }, ticks: { color: '#64748b' } }
+                }
+            }
+        });
+
+        // Simulate Real-time Update
+        setInterval(() => {
+            const lungIcon = document.getElementById('lung-icon');
+            // Toggle between "Heavy Breathing" if strain is high
+            const val = Math.random() * 100;
+            if(val > 70) {
+                lungIcon.className = "lung-heavy text-6xl mb-4";
+            } else {
+                lungIcon.className = "lung-breathe text-6xl text-blue-400 mb-4";
+            }
+        }, 5000);
+    </script>
+</body>
+</html>
