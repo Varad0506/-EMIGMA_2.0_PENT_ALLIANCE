@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AeroPulse AI | 24H History Pro</title>
+    <title>AeroPulse AI | Smart Location Sync</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -14,8 +14,8 @@
         body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #020617; color: #f8fafc; overflow-x: hidden; }
         .glass { background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.08); }
         .globe-wrapper {
-            width: 420px; height: 420px; margin: 0 auto; position: relative;
-            border-radius: 50%; box-shadow: 0 0 60px rgba(59, 130, 246, 0.2), inset 0 0 40px rgba(0,0,0,0.9);
+            width: 380px; height: 380px; position: relative;
+            border-radius: 50%; box-shadow: 0 0 50px rgba(59, 130, 246, 0.2);
             border: 2px solid rgba(59, 130, 246, 0.3); overflow: hidden;
         }
         #map { width: 100%; height: 100%; border-radius: 50%; }
@@ -32,60 +32,49 @@
 
     <nav class="w-full glass py-4 px-8 flex justify-between items-center sticky top-0 z-[100]">
         <div class="flex items-center gap-3">
-            <i data-lucide="activity" class="text-blue-500"></i>
-            <span class="text-xs font-black tracking-widest uppercase">AeroPulse <span class="text-blue-400 italic">History</span></span>
+            <i data-lucide="navigation-2" class="text-blue-500"></i>
+            <span class="text-xs font-black tracking-widest uppercase">AeroPulse <span class="text-blue-400 italic">Global</span></span>
         </div>
         <div class="flex items-center gap-2">
-            <input type="text" id="city-search" placeholder="Enter City..." class="bg-white/5 border border-white/10 py-1.5 px-6 rounded-lg text-xs focus:outline-none focus:border-blue-500">
-            <button onclick="autoLocate()" class="p-2 bg-blue-600/20 border border-blue-500/30 rounded-lg hover:bg-blue-600/40" title="Locate Me">
-                <i data-lucide="crosshair" class="w-4 h-4 text-blue-400"></i>
-            </button>
+            <input type="text" id="city-search" placeholder="Enter City Name..." class="bg-white/5 border border-white/10 py-1.5 px-6 rounded-lg text-xs focus:outline-none focus:border-blue-500 w-64">
+            <button onclick="autoLocate()" class="p-2 bg-blue-600/20 border border-blue-500/30 rounded-lg"><i data-lucide="locate" class="w-4 h-4 text-blue-400"></i></button>
         </div>
     </nav>
 
     <main class="max-w-6xl mx-auto px-6 pt-8 space-y-8">
         
-        <div class="glass p-8 rounded-[3rem] border-b-4 border-blue-500/20">
-            <div class="flex justify-between items-center mb-6">
-                <div>
-                    <h3 class="text-[10px] font-black uppercase tracking-[0.3em] text-blue-400">24-Hour Historical Analysis</h3>
-                    <p id="graph-location" class="text-xl font-black italic">Select a Location</p>
-                </div>
-                <div class="text-right">
-                    <span class="text-[9px] font-bold text-slate-500 uppercase">Gov Data Source: PM2.5 (μg/m³)</span>
-                </div>
-            </div>
-            <div class="h-64">
-                <canvas id="historyChart"></canvas>
-            </div>
+        <div class="glass p-8 rounded-[3rem] border-b-2 border-blue-500/10">
+            <h3 class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-6">Atmospheric History (24 Hours)</h3>
+            <div class="h-44"><canvas id="historyChart"></canvas></div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="glass p-8 rounded-[2.5rem] flex items-center gap-6">
-                <div class="p-4 bg-blue-500/10 rounded-full">
-                    <i data-lucide="lungs" id="lung-icon" class="w-12 h-12 text-blue-400"></i>
-                </div>
-                <div>
-                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Current State</p>
-                    <h2 id="strain-label" class="text-3xl font-black uppercase italic tracking-tighter">Standby</h2>
-                    <p id="aqi-text" class="text-sm font-bold text-blue-400 uppercase">--</p>
-                </div>
-            </div>
-
-            <div class="bg-blue-600/10 border border-blue-500/20 p-8 rounded-[2.5rem] flex items-center gap-4">
-                <i data-lucide="brain-circuit" class="text-blue-400 w-10 h-10"></i>
-                <p id="ai-advice" class="text-sm italic font-medium leading-relaxed text-blue-100">
-                    "AI is ready to analyze. Use the search bar or the globe to pull the last 24 hours of environmental records."
-                </p>
-            </div>
-        </div>
-
-        <div class="flex flex-col items-center">
+        <div class="flex flex-col md:flex-row items-center justify-center gap-12 p-10">
+            
             <div class="globe-wrapper">
                 <div id="map"></div>
                 <div class="globe-overlay"></div>
             </div>
-            <p id="coords-display" class="font-mono text-[10px] text-blue-500 mt-4 uppercase font-bold tracking-widest">Lat: -- | Lon: --</p>
+
+            <div class="flex flex-col space-y-4 text-left min-w-[300px]">
+                <div>
+                    <span class="text-[10px] font-black text-blue-500 uppercase tracking-[0.4em]">Current Observation</span>
+                    <h2 id="display-city-name" class="text-5xl font-extrabold italic tracking-tighter text-white mt-2 mb-1 uppercase">Loading...</h2>
+                    <p id="display-state-country" class="text-blue-400/60 font-bold text-xs uppercase tracking-widest">Global Scan Active</p>
+                </div>
+                
+                <div class="h-[1px] w-full bg-blue-500/20"></div>
+                
+                <div class="space-y-3">
+                    <div class="flex items-center gap-3">
+                        <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                        <span id="side-aqi-label" class="text-xs font-black uppercase tracking-widest text-emerald-400">Scanning Atmosphere</span>
+                    </div>
+                    <p id="ai-advice" class="text-xs text-slate-400 italic leading-relaxed max-w-xs font-medium">
+                        "Detecting air quality metrics for the selected coordinate. Please wait for real-time sensor sync."
+                    </p>
+                </div>
+            </div>
+
         </div>
     </main>
 
@@ -94,102 +83,79 @@
         const API_KEY = '8857f7ca2724295e25e5009a3be436f6';
         let historyChart;
 
-        // 1. Initialize Chart
         function initChart() {
             const ctx = document.getElementById('historyChart').getContext('2d');
             historyChart = new Chart(ctx, {
                 type: 'line',
-                data: {
-                    labels: [],
-                    datasets: [{
-                        label: 'PM 2.5 Concentration',
-                        data: [],
-                        borderColor: '#60a5fa',
-                        backgroundColor: 'rgba(96, 165, 250, 0.1)',
-                        fill: true,
-                        tension: 0.3,
-                        pointRadius: 2,
-                        borderWidth: 2
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: { grid: { display: false }, ticks: { color: '#475569', font: { size: 9 } } },
-                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#475569', font: { size: 9 } } }
-                    }
-                }
+                data: { labels: [], datasets: [{ label: 'PM 2.5', data: [], borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)', fill: true, tension: 0.4 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { ticks: { color: '#475569' } } } }
             });
         }
 
-        // 2. Fetch 24-Hour History from API
-        async function fetchHistory(lat, lon, name) {
+        const map = L.map('map', { zoomControl: false, minZoom: 2 }).setView([20, 78], 3);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(map);
+        let marker;
+
+        // NEW: REVERSE GEOCODING TO GET "NANDED CITY" NAME
+        async function getCityName(lat, lon) {
+            try {
+                const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=10&addressdetails=1`);
+                const data = await res.json();
+                const address = data.address;
+                const city = address.city || address.town || address.village || address.suburb || "Unknown Area";
+                const state = address.state || address.country || "";
+                
+                document.getElementById('display-city-name').innerText = city;
+                document.getElementById('display-state-country').innerText = state;
+                return city;
+            } catch (e) { return "Unknown Area"; }
+        }
+
+        async function fetchAllData(lat, lon) {
+            const name = await getCityName(lat, lon);
             const end = Math.floor(Date.now() / 1000);
-            const start = end - (24 * 3600); // Exactly 24 hours ago
-            
-            document.getElementById('graph-location').innerText = name + " (Last 24H)";
+            const start = end - (24 * 3600);
             
             try {
                 const res = await fetch(`https://api.openweathermap.org/data/2.5/air_pollution/history?lat=${lat}&lon=${lon}&start=${start}&end=${end}&appid=${API_KEY}`);
                 const data = await res.json();
                 
                 if (data.list) {
-                    const pmValues = data.list.map(item => item.components.pm2_5);
-                    const labels = data.list.map(item => {
-                        const date = new Date(item.dt * 1000);
-                        return date.getHours() + ":00";
-                    });
-
-                    // Update Graph
-                    historyChart.data.labels = labels;
-                    historyChart.data.datasets[0].data = pmValues;
+                    historyChart.data.labels = data.list.map(i => new Date(i.dt * 1000).getHours() + ":00");
+                    historyChart.data.datasets[0].data = data.list.map(i => i.components.pm2_5);
                     historyChart.update();
 
-                    // Update Live Stats with the latest point
                     const latest = data.list[data.list.length - 1];
-                    updateDashboard(latest.main.aqi, name);
+                    updateAIUI(latest.main.aqi, name);
                 }
-            } catch (e) { console.error("History API Error:", e); }
+            } catch (e) { console.error(e); }
         }
 
-        function updateDashboard(aqi, name) {
-            const labels = ["Good", "Fair", "Moderate", "Poor", "Hazardous"];
+        function updateAIUI(aqi, name) {
+            const labels = ["Safe", "Fair", "Moderate", "Poor", "Hazardous"];
             const colors = ["text-emerald-400", "text-blue-400", "text-yellow-400", "text-orange-500", "text-red-500"];
-            
-            document.getElementById('strain-label').innerText = labels[aqi-1];
-            document.getElementById('strain-label').className = `text-3xl font-black uppercase italic tracking-tighter ${colors[aqi-1]}`;
-            document.getElementById('aqi-text').innerText = `AQI LEVEL ${aqi}`;
-            
-            const advice = document.getElementById('ai-advice');
-            if(aqi >= 3) {
-                advice.innerText = `"Historical data for ${name} shows rising particulate matter. Pre-existing respiratory conditions may be aggravated today."`;
-            } else {
-                advice.innerText = `"Historical trends for ${name} are stable. Oxygen levels and air purity are currently at peak performance."`;
-            }
+            document.getElementById('side-aqi-label').innerText = `STATUS: ${labels[aqi-1]}`;
+            document.getElementById('side-aqi-label').className = `text-xs font-black uppercase tracking-widest ${colors[aqi-1]}`;
+            document.getElementById('ai-advice').innerText = `"Atmospheric data for ${name} suggests ${labels[aqi-1].toLowerCase()} conditions. Ideal for regular respiratory functions."`;
         }
-
-        // 3. Map Setup
-        const map = L.map('map', { zoomControl: false, minZoom: 2 }).setView([20, 78], 3);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(map);
-        let marker;
 
         function autoLocate() {
             navigator.geolocation.getCurrentPosition(p => {
                 const { latitude, longitude } = p.coords;
-                map.flyTo([latitude, longitude], 10);
-                updateSelection(latitude, longitude, "Home Base");
+                map.flyTo([latitude, longitude], 12);
+                updateMarker(latitude, longitude);
+                fetchAllData(latitude, longitude);
             });
         }
 
-        map.on('click', e => updateSelection(e.latlng.lat, e.latlng.lng, "Selected Zone"));
+        map.on('click', e => {
+            updateMarker(e.latlng.lat, e.latlng.lng);
+            fetchAllData(e.latlng.lat, e.latlng.lng);
+        });
 
-        function updateSelection(lat, lon, label) {
-            document.getElementById('coords-display').innerText = `LAT: ${lat.toFixed(4)} | LON: ${lon.toFixed(4)}`;
+        function updateMarker(lat, lon) {
             if (marker) marker.setLatLng([lat, lon]);
             else marker = L.marker([lat, lon]).addTo(map);
-            fetchHistory(lat, lon, label);
         }
 
         async function searchCity() {
@@ -197,18 +163,15 @@
             const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${city}`);
             const data = await res.json();
             if(data[0]) {
-                const { lat, lon, display_name } = data[0];
-                map.flyTo([lat, lon], 10);
-                updateSelection(parseFloat(lat), parseFloat(lon), display_name.split(',')[0]);
+                const { lat, lon } = data[0];
+                map.flyTo([lat, lon], 12);
+                updateMarker(parseFloat(lat), parseFloat(lon));
+                fetchAllData(parseFloat(lat), parseFloat(lon));
             }
         }
 
         document.getElementById('city-search').addEventListener('keypress', e => { if(e.key==='Enter') searchCity(); });
-        
-        window.onload = () => {
-            initChart();
-            autoLocate();
-        };
+        window.onload = () => { initChart(); autoLocate(); };
     </script>
 </body>
 </html>
