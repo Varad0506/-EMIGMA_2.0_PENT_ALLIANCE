@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AeroPulse AI | Multi-Range Analytics</title>
+    <title>AeroPulse AI | Unified Terminal</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -11,99 +11,82 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap');
-        body { 
-            font-family: 'Plus Jakarta Sans', sans-serif; 
-            background: radial-gradient(circle at top right, #0f172a, #020617);
-            color: #f8fafc; min-height: 100vh; overflow-x: hidden; 
-        }
-        .glass { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.05); }
-        .globe-wrapper {
-            width: 100%; aspect-ratio: 1/1; max-width: 450px; position: relative;
-            border-radius: 50%; box-shadow: 0 0 80px rgba(59, 130, 246, 0.15);
-            border: 2px solid rgba(59, 130, 246, 0.2); overflow: hidden;
-        }
-        #map { width: 100%; height: 100%; border-radius: 50%; }
-        .leaflet-layer { filter: invert(100%) hue-rotate(180deg) brightness(90%) contrast(90%); }
-        .globe-overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; border-radius: 50%; z-index: 2;
-            background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.05) 0%, transparent 60%);
-            box-shadow: inset -30px -30px 60px rgba(0,0,0,0.8);
-        }
-        .time-btn.active { background: #3b82f6; color: white; border-color: #3b82f6; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #020617; color: #f8fafc; min-height: 100vh; overflow-x: hidden; }
+        .glass { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.05); }
+        /* STABLE GLOBE: Fixed size and position */
+        .globe-container { position: sticky; top: 120px; width: 100%; display: flex; flex-direction: column; align-items: center; }
+        .globe-wrapper { width: 380px; height: 380px; position: relative; border-radius: 50%; border: 2px solid rgba(59, 130, 246, 0.2); overflow: hidden; box-shadow: 0 0 60px rgba(59, 130, 246, 0.1); flex-shrink: 0; }
+        #map { width: 100%; height: 100%; background: #020617 !important; }
+        .leaflet-layer { filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%); }
+        .time-btn.active { background: #3b82f6; color: white; box-shadow: 0 0 15px rgba(59, 130, 246, 0.3); }
     </style>
 </head>
-<body class="pb-12">
+<body>
 
-    <header class="w-full py-6 px-10 glass sticky top-0 z-[100] border-b border-white/5">
-        <div class="max-w-7xl mx-auto flex items-center gap-8">
-            <h1 class="text-lg font-black tracking-tighter uppercase leading-none shrink-0">AeroPulse <span class="text-blue-500 italic">AI</span></h1>
-            <div class="relative flex-grow max-w-xl mx-auto">
-                <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500"></i>
-                <input type="text" id="city-search" placeholder="Search City (e.g. Nanded City, Delhi)..." class="w-full bg-white/5 border border-white/10 py-2.5 px-11 rounded-full text-sm focus:outline-none focus:border-blue-500">
+    <header class="w-full pt-6 pb-4 px-10 glass sticky top-0 z-[100] border-b border-white/5">
+        <div class="max-w-7xl mx-auto flex flex-col items-center gap-4">
+            <div class="w-full flex items-center justify-between">
+                <h1 class="text-xl font-black tracking-tighter uppercase italic">AeroPulse <span class="text-blue-500">AI</span></h1>
+                <div class="relative w-full max-w-md">
+                    <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500"></i>
+                    <input type="text" id="city-search" placeholder="Search global station..." class="w-full bg-white/5 border border-white/10 py-2.5 px-11 rounded-full text-xs focus:outline-none focus:border-blue-500 transition-all">
+                </div>
+                <div class="w-24"></div> </div>
+
+            <div class="flex gap-2 bg-black/40 p-1 rounded-xl border border-white/10">
+                <button onclick="changeRange(24, this)" class="time-btn active px-5 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all">24 Hours</button>
+                <button onclick="changeRange(168, this)" class="time-btn px-5 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all">1 Week</button>
+                <button onclick="changeRange(720, this)" class="time-btn px-5 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all">1 Month</button>
             </div>
-            <button onclick="autoLocate()" class="p-2.5 bg-blue-500/10 border border-blue-500/20 rounded-full text-blue-400 hover:bg-blue-500/20"><i data-lucide="map-pin" class="w-5 h-5"></i></button>
         </div>
     </header>
 
-    <main class="max-w-7xl mx-auto px-8 pt-10">
+    <main class="max-w-7xl mx-auto px-8 pt-8 pb-20">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
             
-            <div class="lg:col-span-7 space-y-8">
-                <div class="glass p-8 rounded-[3rem]">
+            <div class="lg:col-span-7 space-y-6">
+                
+                <div class="glass p-8 rounded-[2.5rem]">
                     <div class="flex justify-between items-center mb-6">
-                        <span class="text-[10px] font-black text-blue-500 uppercase tracking-widest">Pollution Trends</span>
-                        <div class="flex gap-2 bg-white/5 p-1 rounded-full border border-white/10">
-                            <button onclick="changeRange(24, this)" class="time-btn active px-4 py-1 text-[10px] font-bold rounded-full border border-transparent transition-all">24H</button>
-                            <button onclick="changeRange(168, this)" class="time-btn px-4 py-1 text-[10px] font-bold rounded-full border border-transparent transition-all">1W</button>
-                            <button onclick="changeRange(720, this)" class="time-btn px-4 py-1 text-[10px] font-bold rounded-full border border-transparent transition-all">1M</button>
-                        </div>
+                        <span class="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Health Index Trend</span>
+                        <div class="text-right"><span id="live-aqi" class="text-2xl font-black text-emerald-500">--</span> <span class="text-[8px] text-slate-500 font-bold uppercase">AQI</span></div>
                     </div>
-                    <div class="h-64"><canvas id="historyChart"></canvas></div>
+                    <div class="h-48"><canvas id="aqiChart"></canvas></div>
                 </div>
 
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div class="glass p-4 rounded-3xl text-center border-b-2 border-blue-500/50">
-                        <p class="text-[9px] font-bold text-slate-500 uppercase">CO (Carbon)</p>
-                        <p id="val-co" class="text-xl font-black mt-1">--</p>
+                <div class="glass p-8 rounded-[2.5rem]">
+                    <span class="text-[10px] font-black text-blue-400 uppercase tracking-widest block mb-6">Pollutant Concentration Pulse</span>
+                    <div class="h-64"><canvas id="chemChart"></canvas></div>
+                </div>
+
+                <div class="grid grid-cols-4 gap-4">
+                    <div class="glass p-4 rounded-2xl text-center border-b border-blue-500/50">
+                        <p class="text-[7px] font-black text-slate-500 uppercase mb-1">PM2.5</p>
+                        <p class="text-sm font-black" id="val-pm25">--</p>
                     </div>
-                    <div class="glass p-4 rounded-3xl text-center border-b-2 border-purple-500/50">
-                        <p class="text-[9px] font-bold text-slate-500 uppercase">NO2 (Nitrogen)</p>
-                        <p id="val-no2" class="text-xl font-black mt-1">--</p>
+                    <div class="glass p-4 rounded-2xl text-center border-b border-emerald-500/50">
+                        <p class="text-[7px] font-black text-slate-500 uppercase mb-1">SO2</p>
+                        <p class="text-sm font-black" id="val-so2">--</p>
                     </div>
-                    <div class="glass p-4 rounded-3xl text-center border-b-2 border-yellow-500/50">
-                        <p class="text-[9px] font-bold text-slate-500 uppercase">SO2 (Sulfur)</p>
-                        <p id="val-so2" class="text-xl font-black mt-1">--</p>
+                    <div class="glass p-4 rounded-2xl text-center border-b border-purple-500/50">
+                        <p class="text-[7px] font-black text-slate-500 uppercase mb-1">NO2</p>
+                        <p class="text-sm font-black" id="val-no2">--</p>
                     </div>
-                    <div class="glass p-4 rounded-3xl text-center border-b-2 border-emerald-500/50">
-                        <p class="text-[9px] font-bold text-slate-500 uppercase">O3 (Ozone)</p>
-                        <p id="val-o3" class="text-xl font-black mt-1">--</p>
+                    <div class="glass p-4 rounded-2xl text-center border-b border-orange-500/50">
+                        <p class="text-[7px] font-black text-slate-500 uppercase mb-1">CO</p>
+                        <p class="text-sm font-black" id="val-co">--</p>
                     </div>
                 </div>
             </div>
 
-            <div class="lg:col-span-5 flex flex-col items-center">
-                <div class="globe-wrapper">
-                    <div id="map"></div>
-                    <div class="globe-overlay"></div>
-                </div>
-
-                <div class="w-full mt-10 space-y-4">
-                    <div class="space-y-1 text-center lg:text-left">
-                        <h2 id="display-city-name" class="text-6xl font-black italic tracking-tighter uppercase leading-none text-white">Searching...</h2>
-                        <p id="display-state-country" class="text-blue-400 font-bold text-sm tracking-[0.3em] uppercase">Global Database</p>
+            <div class="lg:col-span-5 relative">
+                <div class="globe-container">
+                    <div class="globe-wrapper">
+                        <div id="map"></div>
                     </div>
-                    <div class="glass p-6 rounded-[2.5rem] flex items-center gap-6">
-                        <div class="text-center shrink-0">
-                            <span class="text-[9px] font-black text-slate-500 uppercase">AQI Index</span>
-                            <p id="side-aqi-label" class="text-3xl font-black italic leading-none">--</p>
-                        </div>
-                        <div class="h-10 w-[1px] bg-white/10"></div>
-                        <p id="ai-advice" class="text-xs text-slate-300 italic leading-relaxed font-medium">"Syncing with regional sensors to determine localized lung impact..."</p>
-                    </div>
-                    <div class="flex justify-between px-4 font-mono text-[10px] text-slate-500">
-                        <p id="disp-lat">LAT: --</p>
-                        <p id="disp-lon">LON: --</p>
+                    <div class="mt-8 text-center">
+                        <h2 id="city-display" class="text-5xl font-black italic tracking-tighter uppercase leading-tight">Scanning...</h2>
+                        <p class="text-blue-400 font-bold text-[10px] tracking-[0.5em] uppercase mt-2">Atmospheric Node Active</p>
                     </div>
                 </div>
             </div>
@@ -113,103 +96,96 @@
     <script>
         lucide.createIcons();
         const API_KEY = '8857f7ca2724295e25e5009a3be436f6';
-        let historyChart;
-        let currentLat, currentLon;
-        let currentRangeHours = 24;
+        let aqiChart, chemChart, map, marker, currentLat, currentLon, currentRange = 24;
 
-        function initChart() {
-            const ctx = document.getElementById('historyChart').getContext('2d');
-            historyChart = new Chart(ctx, {
+        function init() {
+            // Setup Map
+            map = L.map('map', { zoomControl: false, attributionControl: false }).setView([20, 78], 4);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(map);
+            map.on('click', e => updateLocation(e.latlng.lat, e.latlng.lng));
+            
+            // Setup Charts
+            const commonOptions = {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { x: { display: false }, y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#475569', font: { size: 9 } } } }
+            };
+
+            aqiChart = new Chart(document.getElementById('aqiChart'), {
                 type: 'line',
-                data: { labels: [], datasets: [{ label: 'PM 2.5', data: [], borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.05)', fill: true, tension: 0.4, borderWidth: 3, pointRadius: 0 }] },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, 
-                scales: { x: { grid: { display: false }, ticks: { color: '#475569', maxRotation: 0, autoSkip: true, maxTicksLimit: 6 } }, 
-                          y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#475569' } } } }
+                data: { labels: [], datasets: [{ borderColor: '#10b981', borderWidth: 3, data: [], tension: 0.4, pointRadius: 0, fill: true, backgroundColor: 'rgba(16, 185, 129, 0.05)' }] },
+                options: commonOptions
             });
+
+            chemChart = new Chart(document.getElementById('chemChart'), {
+                type: 'line',
+                data: { labels: [], datasets: [
+                    { label: 'PM2.5', borderColor: '#3b82f6', data: [], tension: 0.4, borderWidth: 2, pointRadius: 0 },
+                    { label: 'SO2', borderColor: '#10b981', data: [], tension: 0.4, borderWidth: 2, pointRadius: 0 },
+                    { label: 'NO2', borderColor: '#a855f7', data: [], tension: 0.4, borderWidth: 2, pointRadius: 0 },
+                    { label: 'CO', borderColor: '#f97316', data: [], tension: 0.4, borderWidth: 2, pointRadius: 0 }
+                ]},
+                options: { ...commonOptions, plugins: { legend: { display: true, position: 'bottom', labels: { color: '#64748b', boxWidth: 8, font: { size: 9 } } } } }
+            });
+
+            autoLocate();
+        }
+
+        async function fetchData(lat, lon) {
+            currentLat = lat; currentLon = lon;
+            const start = Math.floor(Date.now()/1000) - (currentRange * 3600);
+            const res = await fetch(`https://api.openweathermap.org/data/2.5/air_pollution/history?lat=${lat}&lon=${lon}&start=${start}&end=${Math.floor(Date.now()/1000)}&appid=${API_KEY}`);
+            const data = await res.json();
+            
+            const geo = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
+            const gData = await geo.json();
+            document.getElementById('city-display').innerText = gData.address.city || gData.address.town || "Station";
+
+            if (data.list && data.list.length > 0) {
+                const latest = data.list[data.list.length - 1];
+                document.getElementById('live-aqi').innerText = latest.main.aqi;
+                document.getElementById('val-pm25').innerText = latest.components.pm2_5.toFixed(0);
+                document.getElementById('val-so2').innerText = latest.components.so2.toFixed(0);
+                document.getElementById('val-no2').innerText = latest.components.no2.toFixed(0);
+                document.getElementById('val-co').innerText = (latest.components.co / 1000).toFixed(1);
+
+                const labels = data.list.map(i => new Date(i.dt * 1000).getHours());
+                
+                aqiChart.data.labels = labels;
+                aqiChart.data.datasets[0].data = data.list.map(i => i.main.aqi);
+                aqiChart.update();
+
+                chemChart.data.labels = labels;
+                chemChart.data.datasets[0].data = data.list.map(i => i.components.pm2_5);
+                chemChart.data.datasets[1].data = data.list.map(i => i.components.so2);
+                chemChart.data.datasets[2].data = data.list.map(i => i.components.no2);
+                chemChart.data.datasets[3].data = data.list.map(i => i.components.co / 100);
+                chemChart.update();
+            }
         }
 
         function changeRange(hours, btn) {
             document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            currentRangeHours = hours;
-            if(currentLat) fetchAllData(currentLat, currentLon);
+            currentRange = hours;
+            if(currentLat) fetchData(currentLat, currentLon);
         }
 
-        const map = L.map('map', { zoomControl: false, minZoom: 2 }).setView([20, 78], 3);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(map);
-        let marker;
-
-        async function fetchAllData(lat, lon) {
-            currentLat = lat; currentLon = lon;
-            document.getElementById('disp-lat').innerText = `LAT: ${lat.toFixed(4)}`;
-            document.getElementById('disp-lon').innerText = `LON: ${lon.toFixed(4)}`;
-
-            // Geocoding Name
-            const geo = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=10&accept-language=en`);
-            const gData = await geo.json();
-            const city = gData.address.city || gData.address.town || gData.address.village || "Station Alpha";
-            document.getElementById('display-city-name').innerText = city;
-            document.getElementById('display-state-country').innerText = gData.address.state || gData.address.country || "";
-
-            // Fetch History based on Range
-            const end = Math.floor(Date.now() / 1000);
-            const start = end - (currentRangeHours * 3600);
-            const res = await fetch(`https://api.openweathermap.org/data/2.5/air_pollution/history?lat=${lat}&lon=${lon}&start=${start}&end=${end}&appid=${API_KEY}`);
-            const data = await res.json();
-            
-            if (data.list && data.list.length > 0) {
-                const latest = data.list[data.list.length - 1];
-                const comp = latest.components;
-                
-                // Update Chemicals
-                document.getElementById('val-co').innerText = comp.co.toFixed(0);
-                document.getElementById('val-no2').innerText = comp.no2.toFixed(1);
-                document.getElementById('val-so2').innerText = comp.so2.toFixed(1);
-                document.getElementById('val-o3').innerText = comp.o3.toFixed(1);
-
-                // Update Graph Labels based on range
-                historyChart.data.labels = data.list.map(i => {
-                    const d = new Date(i.dt * 1000);
-                    return currentRangeHours <= 24 ? d.getHours() + ":00" : d.toLocaleDateString([], {month:'short', day:'numeric'});
-                });
-                historyChart.data.datasets[0].data = data.list.map(i => i.components.pm2_5);
-                historyChart.update();
-
-                const labels = ["Excellent", "Fair", "Moderate", "Poor", "Hazardous"];
-                const colors = ["text-emerald-400", "text-blue-400", "text-yellow-400", "text-orange-500", "text-red-500"];
-                document.getElementById('side-aqi-label').innerText = labels[latest.main.aqi-1];
-                document.getElementById('side-aqi-label').className = `text-3xl font-black italic ${colors[latest.main.aqi-1]}`;
-                document.getElementById('ai-advice').innerText = `"${city} is currently reporting ${labels[latest.main.aqi-1].toLowerCase()} quality. ${currentRangeHours > 24 ? 'Viewing historical trend.' : 'Live data synced.'}"`;
-            }
+        function updateLocation(lat, lon) {
+            if (marker) marker.setLatLng([lat, lon]);
+            else marker = L.marker([lat, lon]).addTo(map);
+            fetchData(lat, lon);
         }
 
         function autoLocate() {
             navigator.geolocation.getCurrentPosition(p => {
-                map.flyTo([p.coords.latitude, p.coords.longitude], 12);
-                updateSelection(p.coords.latitude, p.coords.longitude);
-            });
+                const { latitude, longitude } = p.coords;
+                map.flyTo([latitude, longitude], 10);
+                updateLocation(latitude, longitude);
+            }, () => updateLocation(18.52, 73.85));
         }
 
-        map.on('click', e => updateSelection(e.latlng.lat, e.latlng.lng));
-
-        function updateSelection(lat, lon) {
-            if (marker) marker.setLatLng([lat, lon]);
-            else marker = L.marker([lat, lon]).addTo(map);
-            fetchAllData(lat, lon);
-        }
-
-        async function searchCity() {
-            const city = document.getElementById('city-search').value;
-            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${city}&accept-language=en`);
-            const data = await res.json();
-            if(data[0]) {
-                map.flyTo([data[0].lat, data[0].lon], 12);
-                updateSelection(parseFloat(data[0].lat), parseFloat(data[0].lon));
-            }
-        }
-
-        document.getElementById('city-search').addEventListener('keypress', e => { if(e.key==='Enter') searchCity(); });
-        window.onload = () => { initChart(); autoLocate(); };
+        window.onload = init;
     </script>
 </body>
 </html>
