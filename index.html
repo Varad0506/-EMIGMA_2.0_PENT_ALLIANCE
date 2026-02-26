@@ -3,209 +3,212 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LungsAI | Advanced Respiratory Intelligence</title>
+    <title>AeroPulse AI | 24H History Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
-        :root { --primary: #3b82f6; --danger: #f43f5e; --success: #10b981; }
-        body { background: #070a13; font-family: 'Inter', sans-serif; color: #e2e8f0; }
-        
-        /* Glassmorphism */
-        .glass-card { 
-            background: rgba(15, 23, 42, 0.6); 
-            backdrop-filter: blur(12px); 
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #020617; color: #f8fafc; overflow-x: hidden; }
+        .glass { background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.08); }
+        .globe-wrapper {
+            width: 420px; height: 420px; margin: 0 auto; position: relative;
+            border-radius: 50%; box-shadow: 0 0 60px rgba(59, 130, 246, 0.2), inset 0 0 40px rgba(0,0,0,0.9);
+            border: 2px solid rgba(59, 130, 246, 0.3); overflow: hidden;
         }
-
-        /* Breathing Animation for the Lung Icon */
-        @keyframes breathe {
-            0%, 100% { transform: scale(1); opacity: 0.8; }
-            50% { transform: scale(1.1); opacity: 1; }
-        }
-        .lung-breathe { animation: breathe 3s ease-in-out infinite; }
-        .lung-heavy { animation: breathe 1s ease-in-out infinite; color: var(--danger); }
-
-        .gradient-text {
-            background: linear-gradient(90deg, #60a5fa, #34d399);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+        #map { width: 100%; height: 100%; border-radius: 50%; }
+        .leaflet-layer { filter: invert(100%) hue-rotate(180deg) brightness(95%); }
+        .globe-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; border-radius: 50%; z-index: 2;
+            background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.1) 0%, transparent 60%);
+            box-shadow: inset -20px -20px 50px rgba(0,0,0,0.7);
         }
     </style>
 </head>
-<body>
+<body class="min-h-screen pb-10">
 
-    <aside class="fixed left-0 top-0 h-full w-20 border-r border-slate-800 bg-[#0b0f1a] flex flex-col items-center py-8 gap-8 z-50">
-        <div class="text-blue-500 text-2xl mb-4"><i class="fas fa-lungs-virus"></i></div>
-        <button onclick="switchTab('dash')" class="nav-btn text-blue-400"><i class="fas fa-th-large text-xl"></i></button>
-        <button onclick="switchTab('map')" class="nav-btn text-slate-500 hover:text-white transition"><i class="fas fa-map-marked-alt text-xl"></i></button>
-        <button onclick="switchTab('report')" class="nav-btn text-slate-500 hover:text-white transition"><i class="fas fa-file-medical-alt text-xl"></i></button>
-    </aside>
+    <nav class="w-full glass py-4 px-8 flex justify-between items-center sticky top-0 z-[100]">
+        <div class="flex items-center gap-3">
+            <i data-lucide="activity" class="text-blue-500"></i>
+            <span class="text-xs font-black tracking-widest uppercase">AeroPulse <span class="text-blue-400 italic">History</span></span>
+        </div>
+        <div class="flex items-center gap-2">
+            <input type="text" id="city-search" placeholder="Enter City..." class="bg-white/5 border border-white/10 py-1.5 px-6 rounded-lg text-xs focus:outline-none focus:border-blue-500">
+            <button onclick="autoLocate()" class="p-2 bg-blue-600/20 border border-blue-500/30 rounded-lg hover:bg-blue-600/40" title="Locate Me">
+                <i data-lucide="crosshair" class="w-4 h-4 text-blue-400"></i>
+            </button>
+        </div>
+    </nav>
 
-    <main class="ml-20 p-8">
+    <main class="max-w-6xl mx-auto px-6 pt-8 space-y-8">
         
-        <header class="flex justify-between items-center mb-10">
-            <div>
-                <h1 class="text-3xl font-black gradient-text">LungsAI Dashboard</h1>
-                <p class="text-slate-500 text-sm">Syncing with Apple Watch & Local Sensors...</p>
-            </div>
-            <div class="flex gap-4">
-                <div class="glass-card px-4 py-2 rounded-2xl border border-blue-500/20 text-xs">
-                    <span class="text-blue-400">● Live Connection:</span> ESP32_Node_01
+        <div class="glass p-8 rounded-[3rem] border-b-4 border-blue-500/20">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h3 class="text-[10px] font-black uppercase tracking-[0.3em] text-blue-400">24-Hour Historical Analysis</h3>
+                    <p id="graph-location" class="text-xl font-black italic">Select a Location</p>
+                </div>
+                <div class="text-right">
+                    <span class="text-[9px] font-bold text-slate-500 uppercase">Gov Data Source: PM2.5 (μg/m³)</span>
                 </div>
             </div>
-        </header>
-
-        <div id="dash-view" class="space-y-6">
-            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                
-                <div class="glass-card p-6 rounded-[2rem] col-span-1 flex flex-col items-center justify-center text-center">
-                    <h3 class="text-xs font-bold text-slate-500 uppercase mb-6">Internal Lung Strain</h3>
-                    <div id="lung-icon" class="lung-breathe text-6xl text-blue-400 mb-4">
-                        <i class="fas fa-lungs"></i>
-                    </div>
-                    <div class="text-4xl font-black">Moderate</div>
-                    <p class="text-xs text-slate-400 mt-2 italic">Breathing rate: 18 bpm</p>
-                </div>
-
-                <div class="glass-card p-6 rounded-[2rem] col-span-1">
-                    <h3 class="text-xs font-bold text-slate-500 uppercase mb-4">Estimated Lung Age</h3>
-                    <div class="text-5xl font-black text-emerald-400">32 <span class="text-sm font-normal text-slate-500">Years</span></div>
-                    <div class="mt-4 p-3 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
-                        <p class="text-[10px] text-emerald-300 tracking-wide">YOUR LUNGS ARE 4 YEARS YOUNGER THAN YOUR ACTUAL AGE.</p>
-                    </div>
-                </div>
-
-                <div class="glass-card p-6 rounded-[2rem] col-span-2">
-                    <h3 class="text-xs font-bold text-slate-500 uppercase mb-4">Live Micro-Pollutants (µg/m³)</h3>
-                    <div class="grid grid-cols-3 gap-4">
-                        <div class="text-center">
-                            <div class="text-xl font-bold text-white">42</div>
-                            <div class="text-[10px] text-slate-500">PM 2.5</div>
-                            <div class="h-1 w-full bg-yellow-500 mt-2 rounded"></div>
-                        </div>
-                        <div class="text-center">
-                            <div class="text-xl font-bold text-white">12</div>
-                            <div class="text-[10px] text-slate-500">NO2</div>
-                            <div class="h-1 w-full bg-emerald-500 mt-2 rounded"></div>
-                        </div>
-                        <div class="text-center">
-                            <div class="text-xl font-bold text-white">84</div>
-                            <div class="text-[10px] text-slate-500">O3 (Ozone)</div>
-                            <div class="h-1 w-full bg-red-500 mt-2 rounded"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div class="glass-card p-8 rounded-[2rem] lg:col-span-2">
-                    <div class="flex justify-between items-center mb-6">
-                        <h3 class="font-bold">Exposure vs. Vital Response</h3>
-                        <div class="flex gap-4 text-[10px]">
-                            <span class="flex items-center gap-1"><i class="fas fa-circle text-blue-500"></i> AQI</span>
-                            <span class="flex items-center gap-1"><i class="fas fa-circle text-rose-500"></i> HEART RATE</span>
-                        </div>
-                    </div>
-                    <div class="h-64">
-                        <canvas id="mainChart"></canvas>
-                    </div>
-                </div>
-
-                <div class="space-y-6">
-                    <div class="glass-card p-6 rounded-[2rem] bg-gradient-to-br from-blue-600/10 to-transparent">
-                        <h3 class="font-bold mb-4 flex items-center gap-2"><i class="fas fa-robot"></i> AI Health Coach</h3>
-                        <p class="text-sm leading-relaxed text-slate-300 italic">
-                            "I've noticed your $SpO_2$ drops slightly when $O_3$ levels exceed 80. Avoid the park route today; take the subway instead to minimize exposure."
-                        </p>
-                    </div>
-                    <div class="glass-card p-6 rounded-[2rem]">
-                        <h3 class="text-xs font-bold text-slate-500 uppercase mb-4">Risk Forecast</h3>
-                        <div class="flex items-center justify-between">
-                            <span class="text-sm">Asthma Trigger Risk</span>
-                            <span class="text-yellow-500 font-bold">24%</span>
-                        </div>
-                        <div class="w-full bg-slate-800 h-2 rounded-full mt-2">
-                            <div class="bg-yellow-500 h-full rounded-full" style="width: 24%"></div>
-                        </div>
-                    </div>
-                </div>
+            <div class="h-64">
+                <canvas id="historyChart"></canvas>
             </div>
         </div>
 
-        <div id="map-view" class="hidden glass-card p-8 rounded-[2rem] min-h-[600px] relative">
-            <h3 class="text-xl font-bold mb-4">Safe Route Optimizer</h3>
-            <div class="bg-slate-800 w-full h-[500px] rounded-2xl flex items-center justify-center overflow-hidden relative">
-                 <div class="absolute inset-0 opacity-40 bg-[url('https://api.mapbox.com/styles/v1/mapbox/dark-v10/static/-73.99,40.71,12/800x500?access_token=MOCK')] bg-cover"></div>
-                 <div class="relative z-10 text-center">
-                    <i class="fas fa-map-marker-alt text-red-500 text-4xl mb-2"></i>
-                    <p class="font-bold">High Pollution Hotspot Detected</p>
-                    <p class="text-xs text-slate-400">Sector 4 reported 150+ AQI</p>
-                 </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="glass p-8 rounded-[2.5rem] flex items-center gap-6">
+                <div class="p-4 bg-blue-500/10 rounded-full">
+                    <i data-lucide="lungs" id="lung-icon" class="w-12 h-12 text-blue-400"></i>
+                </div>
+                <div>
+                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Current State</p>
+                    <h2 id="strain-label" class="text-3xl font-black uppercase italic tracking-tighter">Standby</h2>
+                    <p id="aqi-text" class="text-sm font-bold text-blue-400 uppercase">--</p>
+                </div>
+            </div>
+
+            <div class="bg-blue-600/10 border border-blue-500/20 p-8 rounded-[2.5rem] flex items-center gap-4">
+                <i data-lucide="brain-circuit" class="text-blue-400 w-10 h-10"></i>
+                <p id="ai-advice" class="text-sm italic font-medium leading-relaxed text-blue-100">
+                    "AI is ready to analyze. Use the search bar or the globe to pull the last 24 hours of environmental records."
+                </p>
             </div>
         </div>
 
+        <div class="flex flex-col items-center">
+            <div class="globe-wrapper">
+                <div id="map"></div>
+                <div class="globe-overlay"></div>
+            </div>
+            <p id="coords-display" class="font-mono text-[10px] text-blue-500 mt-4 uppercase font-bold tracking-widest">Lat: -- | Lon: --</p>
+        </div>
     </main>
 
-    
-
     <script>
-        // Tab Switching Logic
-        function switchTab(tab) {
-            document.getElementById('dash-view').classList.add('hidden');
-            document.getElementById('map-view').classList.add('hidden');
-            if(tab === 'dash') document.getElementById('dash-view').classList.remove('hidden');
-            if(tab === 'map') document.getElementById('map-view').classList.remove('hidden');
+        lucide.createIcons();
+        const API_KEY = '8857f7ca2724295e25e5009a3be436f6';
+        let historyChart;
+
+        // 1. Initialize Chart
+        function initChart() {
+            const ctx = document.getElementById('historyChart').getContext('2d');
+            historyChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'PM 2.5 Concentration',
+                        data: [],
+                        borderColor: '#60a5fa',
+                        backgroundColor: 'rgba(96, 165, 250, 0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 2,
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: '#475569', font: { size: 9 } } },
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#475569', font: { size: 9 } } }
+                    }
+                }
+            });
         }
 
-        // Advanced Charting
-        const ctx = document.getElementById('mainChart').getContext('2d');
-        const mainChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: ['12pm', '1pm', '2pm', '3pm', '4pm', '5pm', '6pm'],
-                datasets: [{
-                    label: 'Lung Strain Index',
-                    data: [20, 35, 70, 45, 90, 65, 30],
-                    borderColor: '#f43f5e',
-                    borderWidth: 4,
-                    pointRadius: 0,
-                    tension: 0.4,
-                    fill: true,
-                    backgroundColor: 'rgba(244, 63, 94, 0.05)'
-                }, {
-                    label: 'Local AQI',
-                    data: [40, 50, 110, 80, 130, 100, 50],
-                    borderColor: '#3b82f6',
-                    borderWidth: 2,
-                    borderDash: [5, 5],
-                    pointRadius: 0,
-                    tension: 0.4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    x: { grid: { display: false }, ticks: { color: '#64748b' } },
-                    y: { grid: { color: '#1e293b' }, ticks: { color: '#64748b' } }
-                }
-            }
-        });
+        // 2. Fetch 24-Hour History from API
+        async function fetchHistory(lat, lon, name) {
+            const end = Math.floor(Date.now() / 1000);
+            const start = end - (24 * 3600); // Exactly 24 hours ago
+            
+            document.getElementById('graph-location').innerText = name + " (Last 24H)";
+            
+            try {
+                const res = await fetch(`https://api.openweathermap.org/data/2.5/air_pollution/history?lat=${lat}&lon=${lon}&start=${start}&end=${end}&appid=${API_KEY}`);
+                const data = await res.json();
+                
+                if (data.list) {
+                    const pmValues = data.list.map(item => item.components.pm2_5);
+                    const labels = data.list.map(item => {
+                        const date = new Date(item.dt * 1000);
+                        return date.getHours() + ":00";
+                    });
 
-        // Simulate Real-time Update
-        setInterval(() => {
-            const lungIcon = document.getElementById('lung-icon');
-            // Toggle between "Heavy Breathing" if strain is high
-            const val = Math.random() * 100;
-            if(val > 70) {
-                lungIcon.className = "lung-heavy text-6xl mb-4";
+                    // Update Graph
+                    historyChart.data.labels = labels;
+                    historyChart.data.datasets[0].data = pmValues;
+                    historyChart.update();
+
+                    // Update Live Stats with the latest point
+                    const latest = data.list[data.list.length - 1];
+                    updateDashboard(latest.main.aqi, name);
+                }
+            } catch (e) { console.error("History API Error:", e); }
+        }
+
+        function updateDashboard(aqi, name) {
+            const labels = ["Good", "Fair", "Moderate", "Poor", "Hazardous"];
+            const colors = ["text-emerald-400", "text-blue-400", "text-yellow-400", "text-orange-500", "text-red-500"];
+            
+            document.getElementById('strain-label').innerText = labels[aqi-1];
+            document.getElementById('strain-label').className = `text-3xl font-black uppercase italic tracking-tighter ${colors[aqi-1]}`;
+            document.getElementById('aqi-text').innerText = `AQI LEVEL ${aqi}`;
+            
+            const advice = document.getElementById('ai-advice');
+            if(aqi >= 3) {
+                advice.innerText = `"Historical data for ${name} shows rising particulate matter. Pre-existing respiratory conditions may be aggravated today."`;
             } else {
-                lungIcon.className = "lung-breathe text-6xl text-blue-400 mb-4";
+                advice.innerText = `"Historical trends for ${name} are stable. Oxygen levels and air purity are currently at peak performance."`;
             }
-        }, 5000);
+        }
+
+        // 3. Map Setup
+        const map = L.map('map', { zoomControl: false, minZoom: 2 }).setView([20, 78], 3);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(map);
+        let marker;
+
+        function autoLocate() {
+            navigator.geolocation.getCurrentPosition(p => {
+                const { latitude, longitude } = p.coords;
+                map.flyTo([latitude, longitude], 10);
+                updateSelection(latitude, longitude, "Home Base");
+            });
+        }
+
+        map.on('click', e => updateSelection(e.latlng.lat, e.latlng.lng, "Selected Zone"));
+
+        function updateSelection(lat, lon, label) {
+            document.getElementById('coords-display').innerText = `LAT: ${lat.toFixed(4)} | LON: ${lon.toFixed(4)}`;
+            if (marker) marker.setLatLng([lat, lon]);
+            else marker = L.marker([lat, lon]).addTo(map);
+            fetchHistory(lat, lon, label);
+        }
+
+        async function searchCity() {
+            const city = document.getElementById('city-search').value;
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${city}`);
+            const data = await res.json();
+            if(data[0]) {
+                const { lat, lon, display_name } = data[0];
+                map.flyTo([lat, lon], 10);
+                updateSelection(parseFloat(lat), parseFloat(lon), display_name.split(',')[0]);
+            }
+        }
+
+        document.getElementById('city-search').addEventListener('keypress', e => { if(e.key==='Enter') searchCity(); });
+        
+        window.onload = () => {
+            initChart();
+            autoLocate();
+        };
     </script>
 </body>
 </html>
