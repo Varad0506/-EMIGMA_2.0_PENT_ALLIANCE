@@ -16,16 +16,11 @@
         .condition-card.active { border-color: #3b82f6; background: rgba(59, 130, 246, 0.2); transform: scale(1.02); }
         .result-glow { text-shadow: 0 0 40px rgba(59, 130, 246, 0.8); }
         .reason-card { background: rgba(59, 130, 246, 0.15); border-left: 8px solid #3b82f6; padding: 24px; border-radius: 0 24px 24px 0; margin-bottom: 20px; font-size: 22px; }
+        .predict-card { background: rgba(16, 185, 129, 0.1); border-left: 8px solid #10b981; padding: 20px; border-radius: 0 24px 24px 0; margin-bottom: 15px; }
         
         #history-panel { transform: translateX(100%); transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
         #history-panel.open { transform: translateX(0); }
-        .history-item { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 15px; margin-bottom: 12px; }
-
-        .breath-orb { 
-            width: 100px; height: 100px; border-radius: 50%; 
-            background: radial-gradient(circle, #3b82f6 0%, transparent 70%); 
-            margin: 20px auto; transition: transform 4s ease-in-out; 
-        }
+        .breath-orb { width: 100px; height: 100px; border-radius: 50%; background: radial-gradient(circle, #3b82f6 0%, transparent 70%); margin: 20px auto; transition: transform 4s ease-in-out; }
         .inhale { transform: scale(1.8); }
         .exhale { transform: scale(1.0); }
     </style>
@@ -38,18 +33,13 @@
             <button onclick="toggleHistory()" class="p-2 hover:bg-white/10 rounded-full"><i data-lucide="x"></i></button>
         </div>
         <div id="history-list"></div>
-        <button onclick="clearHistory()" class="w-full mt-6 text-red-400 text-sm font-bold uppercase tracking-widest opacity-50 hover:opacity-100">Clear All Records</button>
     </div>
 
     <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10">
         <div class="lg:col-span-5 space-y-8">
             <div class="flex justify-between items-center">
-                <button onclick="window.location.href='index.html'" class="text-blue-400 font-bold flex items-center gap-2 text-2xl">
-                    <i data-lucide="arrow-left" class="w-8 h-8"></i> Back
-                </button>
-                <button onclick="toggleHistory()" class="bg-white/5 border border-white/10 px-6 py-3 rounded-2xl flex items-center gap-3 font-bold hover:bg-white/10 transition-all">
-                    <i data-lucide="history" class="w-6 h-6"></i> View History
-                </button>
+                <button onclick="window.location.href='index.html'" class="text-blue-400 font-bold flex items-center gap-2 text-2xl"><i data-lucide="arrow-left"></i> Back</button>
+                <button onclick="toggleHistory()" class="bg-white/5 border border-white/10 px-6 py-3 rounded-2xl flex items-center gap-3 font-bold">History</button>
             </div>
 
             <div class="glass p-8 rounded-[3rem] border-l-8 border-emerald-500">
@@ -62,7 +52,7 @@
                 </div>
                 <div id="breath-player" class="hidden text-center">
                     <div id="orb" class="breath-orb exhale"></div>
-                    <p id="breath-status" class="text-xl font-bold text-emerald-400 uppercase tracking-widest">Ready</p>
+                    <p id="breath-status" class="text-xl font-bold text-emerald-400 uppercase">Ready</p>
                     <p id="timer-display" class="text-3xl font-mono text-white/50">00:00</p>
                     <button onclick="stopBreathing()" class="mt-4 text-xs text-red-400 font-black">STOP</button>
                 </div>
@@ -70,52 +60,38 @@
             
             <div class="glass p-10 rounded-[3rem] space-y-8">
                 <h1 class="text-5xl font-black italic uppercase">Body <span class="text-blue-500">Stats</span></h1>
-                <div class="space-y-4">
-                    <label class="font-bold text-slate-300">Age</label>
-                    <input type="number" id="user-age" value="25" class="input-field">
-                </div>
+                <input type="number" id="user-age" placeholder="Age" value="25" class="input-field">
                 <div class="grid grid-cols-2 gap-4">
-                    <div class="space-y-2">
-                        <label class="font-bold text-slate-300">Height (cm)</label>
-                        <input type="number" id="user-height" value="170" class="input-field">
-                    </div>
-                    <div class="space-y-2">
-                        <label class="font-bold text-slate-300">Weight (kg)</label>
-                        <input type="number" id="user-weight" value="70" class="input-field">
-                    </div>
+                    <input type="number" id="user-height" placeholder="Height cm" value="170" class="input-field">
+                    <input type="number" id="user-weight" placeholder="Weight kg" value="70" class="input-field">
                 </div>
-                <div class="space-y-4">
-                    <label class="text-2xl font-bold text-blue-400">Condition:</label>
-                    <div class="grid grid-cols-1 gap-3">
-                        <div onclick="setCondition('Healthy', 1.0)" id="card-Healthy" class="condition-card p-6 rounded-2xl active uppercase font-black">Healthy</div>
-                        <div onclick="setCondition('Asthma', 2.5)" id="card-Asthma" class="condition-card p-6 rounded-2xl uppercase font-black">Asthma</div>
-                        <div onclick="setCondition('COPD', 4.0)" id="card-COPD" class="condition-card p-6 rounded-2xl uppercase font-black">COPD</div>
-                    </div>
+                <div class="grid grid-cols-1 gap-3">
+                    <div onclick="setCondition('Healthy', 1.0)" id="card-Healthy" class="condition-card p-6 rounded-2xl active uppercase font-black">Healthy</div>
+                    <div onclick="setCondition('Asthma', 2.5)" id="card-Asthma" class="condition-card p-6 rounded-2xl uppercase font-black">Asthma</div>
+                    <div onclick="setCondition('COPD', 4.0)" id="card-COPD" class="condition-card p-6 rounded-2xl uppercase font-black">COPD</div>
                 </div>
-                <div id="duration-section" class="hidden space-y-4">
-                    <label class="text-xl font-bold text-orange-400">Years with Condition?</label>
-                    <input type="number" id="disease-years" value="1" class="input-field">
-                </div>
-                <button onclick="calculateDeepRisk()" class="w-full bg-blue-600 py-6 rounded-3xl font-black uppercase text-2xl shadow-2xl">
-                    Run AI Analysis
-                </button>
+                <div id="duration-section" class="hidden"><input type="number" id="disease-years" value="1" class="input-field" placeholder="Years active"></div>
+                <button onclick="calculateDeepRisk()" class="w-full bg-blue-600 py-6 rounded-3xl font-black uppercase text-2xl shadow-2xl">Run AI Analysis</button>
             </div>
         </div>
 
         <div class="lg:col-span-7 space-y-8">
             <div id="result-view" class="hidden space-y-8">
                 <div class="glass p-10 rounded-[4rem] border-b-8 border-blue-500/20 text-center">
-                    <p class="text-xl font-bold text-slate-400 uppercase">Estimated Lung Age</p>
+                    <p class="text-xl font-bold text-slate-400 uppercase">Lung Age</p>
                     <p id="disp-lung" class="text-9xl font-black italic text-white result-glow leading-none my-6">--</p>
                 </div>
                 <div class="glass p-10 rounded-[3rem]">
                     <h2 class="text-3xl font-black uppercase italic text-blue-400 mb-6">Why this result?</h2>
                     <div id="reasons-container" class="space-y-4"></div>
+                    
+                    <h2 class="text-3xl font-black uppercase italic text-emerald-400 mt-10 mb-6">3-Week Prediction</h2>
+                    <div id="prediction-container" class="space-y-4"></div>
                 </div>
                 <div class="glass p-10 rounded-[3rem]"><div class="h-64"><canvas id="trendChart"></canvas></div></div>
             </div>
             <div id="empty-state" class="h-full flex flex-col items-center justify-center opacity-20">
-                <i data-lucide="heart-pulse" class="w-40 h-40 mb-6"></i>
+                <i data-lucide="heart-pulse" class="w-40 h-40"></i>
                 <p class="text-3xl font-black uppercase">Awaiting Stats</p>
             </div>
         </div>
@@ -126,17 +102,16 @@
         let currentStatus = 'Healthy', mult = 1.0, chartInstance = null;
         let breathInterval, timerInterval;
 
-        // --- NATURAL WIND SOUND ENGINE ---
+        // --- SMOOTH WIND SOUND ENGINE ---
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         function playBreathSound(type) {
             if (audioCtx.state === 'suspended') audioCtx.resume();
-            const bufferSize = 2 * audioCtx.sampleRate,
-            noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate),
-            output = noiseBuffer.getChannelData(0);
-            for (let i = 0; i < bufferSize; i++) { output[i] = Math.random() * 2 - 1; }
-
-            const whiteNoise = audioCtx.createBufferSource();
-            whiteNoise.buffer = noiseBuffer; whiteNoise.loop = true;
+            const noise = audioCtx.createBufferSource();
+            const bufferSize = audioCtx.sampleRate * 4;
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+            noise.buffer = buffer;
 
             const filter = audioCtx.createBiquadFilter();
             filter.type = 'lowpass';
@@ -144,20 +119,18 @@
 
             if (type === 'inhale') {
                 filter.frequency.setValueAtTime(200, audioCtx.currentTime);
-                filter.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 3.5);
+                filter.frequency.exponentialRampToValueAtTime(1000, audioCtx.currentTime + 3.5);
                 gain.gain.setValueAtTime(0, audioCtx.currentTime);
-                gain.gain.linearRampToValueAtTime(0.15, audioCtx.currentTime + 1);
-                gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 4);
+                gain.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + 1);
             } else {
-                filter.frequency.setValueAtTime(800, audioCtx.currentTime);
+                filter.frequency.setValueAtTime(1000, audioCtx.currentTime);
                 filter.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 3.5);
-                gain.gain.setValueAtTime(0, audioCtx.currentTime);
-                gain.gain.linearRampToValueAtTime(0.15, audioCtx.currentTime + 0.5);
-                gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 4);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 3.5);
             }
 
-            whiteNoise.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
-            whiteNoise.start(); whiteNoise.stop(audioCtx.currentTime + 4);
+            noise.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+            noise.start(); noise.stop(audioCtx.currentTime + 4);
         }
 
         function startBreathing(mins) {
@@ -185,51 +158,45 @@
         }
 
         function stopBreathing() { clearInterval(timerInterval); clearInterval(breathInterval); 
-            document.getElementById('breath-setup').classList.remove('hidden'); 
-            document.getElementById('breath-player').classList.add('hidden'); }
+            document.getElementById('breath-setup').classList.remove('hidden'); document.getElementById('breath-player').classList.add('hidden'); }
 
-        // --- ANALYSIS LOGIC ---
         function setCondition(name, val) {
             currentStatus = name; mult = val;
             document.querySelectorAll('.condition-card').forEach(c => c.classList.remove('active'));
             document.getElementById('card-' + name).classList.add('active');
-            document.getElementById('duration-section').style.display = (name === 'Healthy') ? 'none' : 'block';
+            document.getElementById('duration-section').classList.toggle('hidden', name === 'Healthy');
         }
 
         function calculateDeepRisk() {
             const air = JSON.parse(localStorage.getItem('currentAirData') || '{"aqi":50}');
             const age = parseInt(document.getElementById('user-age').value);
-            const h = parseInt(document.getElementById('user-height').value) / 100;
-            const w = parseInt(document.getElementById('user-weight').value);
-            const y = currentStatus === 'Healthy' ? 0 : parseInt(document.getElementById('disease-years').value);
+            const bmi = parseInt(document.getElementById('user-weight').value) / (Math.pow(parseInt(document.getElementById('user-height').value)/100, 2));
+            const y = parseInt(document.getElementById('disease-years').value) || 0;
             
-            const bmi = w / (h * h);
-            let bmiPenalty = bmi > 27 ? (bmi - 27) * 1.2 : 0;
-            let lungAge = Math.round(age + bmiPenalty + (y * 1.5) + (mult * 5) + (air.aqi / 15));
+            let lungAge = Math.round(age + (bmi > 26 ? (bmi-26)*1.5 : 0) + (y * 1.2) + (mult * 5) + (air.aqi / 20));
 
             document.getElementById('empty-state').classList.add('hidden');
             document.getElementById('result-view').classList.remove('hidden');
             document.getElementById('disp-lung').innerText = lungAge;
 
-            // --- WHY THIS RESULT EXPLANATION ---
-            let reasons = [];
-            reasons.push(`🧬 <b>Base Age:</b> Your biological starting point is ${age}.`);
-            if (air.aqi > 50) reasons.push(`💨 <b>Pollution Impact:</b> Current AQI (${air.aqi}) is causing oxidative stress, adding roughly ${Math.round(air.aqi/15)} years.`);
-            if (bmi > 27) reasons.push(`⚖️ <b>BMI Load:</b> Your BMI of ${bmi.toFixed(1)} creates physical pressure on the diaphragm, adding ${Math.round(bmiPenalty)} years.`);
-            if (currentStatus !== 'Healthy') reasons.push(`🏥 <b>Condition:</b> Living with ${currentStatus} for ${y} years has reduced lung elasticity.`);
+            // Reasons Explanation
+            document.getElementById('reasons-container').innerHTML = `
+                <div class="reason-card">💨 <b>Pollution:</b> AQI ${air.aqi} is currently increasing your lung stress.</div>
+                <div class="reason-card">🧬 <b>Biology:</b> Your ${currentStatus} profile is being factored into elasticity levels.</div>
+            `;
 
-            document.getElementById('reasons-container').innerHTML = reasons.map(r => `<div class="reason-card">${r}</div>`).join('');
+            // 3-WEEK PREDICTION LOGIC
+            document.getElementById('prediction-container').innerHTML = `
+                <div class="predict-card"><b>Week 1:</b> Diaphragm strengthening will lower Stress Score volatility.</div>
+                <div class="predict-card"><b>Week 2:</b> Increased Alveolar efficiency will likely reduce Lung Age by 1.2 years.</div>
+                <div class="predict-card"><b>Week 3:</b> Nervous system integration will stabilize resting breath rate.</div>
+            `;
+
             renderTrend(air.aqi * mult);
         }
 
-        function toggleHistory() { document.getElementById('history-panel').classList.toggle('open'); loadHistory(); }
-        function loadHistory() {
-            const history = JSON.parse(localStorage.getItem('lungHistory') || '[]');
-            document.getElementById('history-list').innerHTML = history.map(h => `
-                <div class="history-item"><span class="text-blue-400 font-black">${h.age} yrs</span><p class="text-xs text-slate-500">${h.condition}</p></div>
-            `).join('') || '<p class="text-center opacity-30 mt-10">Empty</p>';
-        }
-
+        function toggleHistory() { document.getElementById('history-panel').classList.toggle('open'); }
+        
         function renderTrend(base) {
             const ctx = document.getElementById('trendChart');
             if(chartInstance) chartInstance.destroy();
