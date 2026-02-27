@@ -21,14 +21,13 @@
         #history-panel.open { transform: translateX(0); }
         .history-item { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 15px; margin-bottom: 12px; }
 
-        /* Breathing Orb Animation */
         .breath-orb { 
             width: 100px; height: 100px; border-radius: 50%; 
             background: radial-gradient(circle, #3b82f6 0%, transparent 70%); 
-            margin: 20px auto; transition: transform 4s ease-in-out, opacity 4s ease-in-out; 
+            margin: 20px auto; transition: transform 4s ease-in-out; 
         }
-        .inhale { transform: scale(1.8); opacity: 1; }
-        .exhale { transform: scale(1.0); opacity: 0.4; }
+        .inhale { transform: scale(1.8); }
+        .exhale { transform: scale(1.0); }
     </style>
 </head>
 <body class="p-6 md:p-12">
@@ -43,6 +42,7 @@
     </div>
 
     <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10">
+        
         <div class="lg:col-span-5 space-y-8">
             <div class="flex justify-between items-center">
                 <button onclick="window.location.href='index.html'" class="text-blue-400 font-bold flex items-center gap-2 text-2xl">
@@ -54,12 +54,9 @@
             </div>
 
             <div class="glass p-8 rounded-[3rem] border-l-8 border-emerald-500">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-2xl font-black uppercase italic flex items-center gap-3">
-                        <i data-lucide="wind" class="text-emerald-400"></i> Recovery Mode
-                    </h2>
-                    <span id="audio-indicator" class="text-[10px] font-bold text-emerald-500/50 uppercase tracking-widest">Sound Active</span>
-                </div>
+                <h2 class="text-2xl font-black uppercase italic mb-4 flex items-center gap-3 text-emerald-400">
+                    <i data-lucide="wind"></i> Recovery Mode
+                </h2>
                 
                 <div id="breath-setup" class="grid grid-cols-4 gap-2 mb-4">
                     <button onclick="startBreathing(2)" class="bg-white/5 p-2 rounded-xl text-sm font-bold hover:bg-emerald-500/20">2m</button>
@@ -70,7 +67,7 @@
 
                 <div id="breath-player" class="hidden text-center">
                     <div id="orb" class="breath-orb exhale"></div>
-                    <p id="breath-status" class="text-xl font-bold text-emerald-400 uppercase tracking-widest mt-2">Get Ready</p>
+                    <p id="breath-status" class="text-xl font-bold text-emerald-400 uppercase tracking-widest">Get Ready</p>
                     <p id="timer-display" class="text-3xl font-mono mt-2 text-white/50">00:00</p>
                     <button onclick="stopBreathing()" class="mt-4 text-xs uppercase text-red-400 font-black">End Session</button>
                 </div>
@@ -111,7 +108,7 @@
         </div>
 
         <div class="lg:col-span-7 space-y-8">
-            <div id="result-view" class="hidden animate-in fade-in duration-1000 space-y-8">
+            <div id="result-view" class="hidden space-y-8">
                 <div class="glass p-10 rounded-[4rem] border-b-8 border-blue-500/20 text-center">
                     <p class="text-xl font-bold text-slate-400 uppercase tracking-widest">Your Lung Age</p>
                     <p id="disp-lung" class="text-9xl font-black italic text-white result-glow leading-none my-6">--</p>
@@ -136,43 +133,22 @@
         let currentStatus = 'Healthy', mult = 1.0, chartInstance = null;
         let breathInterval, timerInterval;
 
-        // --- ENHANCED AUDIO ENGINE ---
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        let audioCtx;
-
-        function playBreathSound(type) {
-            if (!audioCtx) audioCtx = new AudioContext();
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-
-            const oscillator = audioCtx.createOscillator();
-            const gainNode = audioCtx.createGain();
-
-            oscillator.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
-
-            if (type === 'inhale') {
-                // Rising tone for inhale
-                oscillator.type = 'sine';
-                oscillator.frequency.setValueAtTime(300, audioCtx.currentTime);
-                oscillator.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 3.5);
-                gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-                gainNode.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + 0.5);
-                gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 3.8);
-            } else {
-                // Falling deeper tone for exhale
-                oscillator.type = 'sine';
-                oscillator.frequency.setValueAtTime(500, audioCtx.currentTime);
-                oscillator.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 3.5);
-                gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-                gainNode.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + 0.2);
-                gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 3.8);
-            }
-
-            oscillator.start();
-            oscillator.stop(audioCtx.currentTime + 4);
+        // --- AUDIO GENERATOR ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playTone(freq, duration) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
         }
 
         function startBreathing(mins) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
             document.getElementById('breath-setup').classList.add('hidden');
             document.getElementById('breath-player').classList.remove('hidden');
             let timeLeft = mins * 60;
@@ -192,12 +168,12 @@
                 if (cycle === 0) {
                     orb.classList.replace('exhale', 'inhale');
                     status.innerText = "Breathe In";
-                    playBreathSound('inhale');
+                    playTone(440, 3.5); // High pitch inhale
                     cycle = 1;
                 } else {
                     orb.classList.replace('inhale', 'exhale');
                     status.innerText = "Breathe Out";
-                    playBreathSound('exhale');
+                    playTone(220, 3.5); // Low pitch exhale
                     cycle = 0;
                 }
             };
@@ -214,8 +190,7 @@
             document.getElementById('breath-player').classList.add('hidden');
         }
 
-        // --- ORIGINAL ANALYTICS LOGIC ---
-        function toggleHistory() { document.getElementById('history-panel').classList.toggle('open'); loadHistory(); }
+        // --- CALCULATION LOGIC ---
         function setCondition(name, val) {
             currentStatus = name; mult = val;
             document.querySelectorAll('.condition-card').forEach(c => c.classList.remove('active'));
@@ -229,37 +204,42 @@
             const height = parseInt(document.getElementById('user-height').value) / 100;
             const weight = parseInt(document.getElementById('user-weight').value);
             const years = currentStatus === 'Healthy' ? 0 : parseInt(document.getElementById('disease-years').value);
+
+            // FORMULA FOR LUNG AGE
             const bmi = weight / (height * height);
             let bmiPenalty = bmi > 27 ? (bmi - 27) * 0.8 : 0;
             let finalLungAge = Math.round(age + bmiPenalty + (years * 0.9) + (mult * 4) + (air.aqi / 20));
-            const history = JSON.parse(localStorage.getItem('lungHistory') || '[]');
-            history.unshift({ age: finalLungAge, date: new Date().toLocaleTimeString(), condition: currentStatus });
-            localStorage.setItem('lungHistory', JSON.stringify(history.slice(0, 10)));
+
+            // UI UPDATES
             document.getElementById('empty-state').classList.add('hidden');
             document.getElementById('result-view').classList.remove('hidden');
-            document.getElementById('disp-lung').innerText = finalLungAge;
+            document.getElementById('disp-lung').innerText = finalLungAge + " Years";
+            
             let reasons = [];
-            if (air.aqi > 50) reasons.push(`💨 <b>Air Pollution:</b> The AQI level (${air.aqi}) is placing significant stress on your lung tissue.`);
-            if (currentStatus !== 'Healthy') reasons.push(`🏥 <b>Condition Wear:</b> ${years} years of ${currentStatus} has affected bronchial elasticity.`);
-            if (bmi > 27) reasons.push(`⚖️ <b>Physical Load:</b> Elevated BMI creates physical resistance against diaphragm expansion.`);
+            if (air.aqi > 50) reasons.push(`💨 <b>Air Pollution:</b> AQI of ${air.aqi} is aging your lungs.`);
+            if (currentStatus !== 'Healthy') reasons.push(`🏥 <b>History:</b> Your ${currentStatus} profile adds stress.`);
+            if (bmi > 27) reasons.push(`⚖️ <b>BMI:</b> High weight reduces diaphragm efficiency.`);
             document.getElementById('reasons-container').innerHTML = reasons.map(r => `<div class="reason-card">${r}</div>`).join('');
-            const baseStress = air.aqi * mult;
-            renderTrend(baseStress);
-            lucide.createIcons();
+            
+            saveToHistory(finalLungAge);
+            renderTrend(air.aqi * mult);
         }
 
+        function saveToHistory(age) {
+            const history = JSON.parse(localStorage.getItem('lungHistory') || '[]');
+            history.unshift({ age, date: new Date().toLocaleTimeString(), condition: currentStatus });
+            localStorage.setItem('lungHistory', JSON.stringify(history.slice(0, 10)));
+        }
+
+        function toggleHistory() { document.getElementById('history-panel').classList.toggle('open'); loadHistory(); }
         function loadHistory() {
             const history = JSON.parse(localStorage.getItem('lungHistory') || '[]');
-            const list = document.getElementById('history-list');
-            list.innerHTML = history.length ? history.map(h => `
+            document.getElementById('history-list').innerHTML = history.map(h => `
                 <div class="history-item">
-                    <div class="flex justify-between items-center">
-                        <span class="text-blue-400 font-black text-2xl">${h.age} yrs</span>
-                        <span class="text-[10px] text-slate-500 font-bold uppercase">${h.date}</span>
-                    </div>
-                    <p class="text-xs text-slate-400 mt-1 uppercase tracking-widest">${h.condition} Profile</p>
+                    <span class="text-blue-400 font-black text-2xl">${h.age} yrs</span>
+                    <p class="text-xs text-slate-500 uppercase">${h.date} - ${h.condition}</p>
                 </div>
-            `).join('') : '<p class="text-center opacity-30 mt-10">No records found</p>';
+            `).join('') || '<p class="text-center opacity-30 mt-10">No records</p>';
         }
 
         function clearHistory() { localStorage.removeItem('lungHistory'); loadHistory(); }
@@ -270,14 +250,10 @@
             chartInstance = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: ['Week 1', 'Week 2', 'Week 3'],
-                    datasets: [{
-                        data: [base, base * 1.3, base * 0.85],
-                        borderColor: '#3b82f6', borderWidth: 8, tension: 0.4, fill: true, backgroundColor: 'rgba(59, 130, 246, 0.1)'
-                    }]
+                    labels: ['Wk 1', 'Wk 2', 'Wk 3'],
+                    datasets: [{ data: [base, base*1.2, base*0.9], borderColor: '#3b82f6', fill: true, backgroundColor: 'rgba(59, 130, 246, 0.1)' }]
                 },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, 
-                scales: { y: { display: false }, x: { ticks: { color: '#94a3b8', font: { weight: 'bold' } }, grid: { display: false } } } }
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
             });
         }
     </script>
