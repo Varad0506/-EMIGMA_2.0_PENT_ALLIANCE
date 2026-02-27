@@ -17,12 +17,10 @@
         .result-glow { text-shadow: 0 0 40px rgba(59, 130, 246, 0.8); }
         .reason-card { background: rgba(59, 130, 246, 0.15); border-left: 8px solid #3b82f6; padding: 24px; border-radius: 0 24px 24px 0; margin-bottom: 20px; font-size: 22px; }
         
-        /* History Sidebar */
         #history-panel { transform: translateX(100%); transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
         #history-panel.open { transform: translateX(0); }
         .history-item { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 15px; margin-bottom: 12px; }
 
-        /* Breathing Animation */
         .breath-orb { 
             width: 100px; height: 100px; border-radius: 50%; 
             background: radial-gradient(circle, #3b82f6 0%, transparent 70%); 
@@ -44,7 +42,6 @@
     </div>
 
     <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10">
-        
         <div class="lg:col-span-5 space-y-8">
             <div class="flex justify-between items-center">
                 <button onclick="window.location.href='index.html'" class="text-blue-400 font-bold flex items-center gap-2 text-2xl">
@@ -56,9 +53,12 @@
             </div>
 
             <div class="glass p-8 rounded-[3rem] border-l-8 border-emerald-500">
-                <h2 class="text-2xl font-black uppercase italic mb-4 flex items-center gap-3">
-                    <i data-lucide="wind" class="text-emerald-400"></i> Lung Recovery
-                </h2>
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-black uppercase italic flex items-center gap-3">
+                        <i data-lucide="wind" class="text-emerald-400"></i> Recovery
+                    </h2>
+                    <i data-lucide="volume-2" class="w-5 h-5 text-emerald-500/50"></i>
+                </div>
                 
                 <div id="breath-setup" class="grid grid-cols-4 gap-2 mb-4">
                     <button onclick="startBreathing(2)" class="bg-white/5 p-2 rounded-xl text-sm font-bold hover:bg-emerald-500/20">2m</button>
@@ -135,13 +135,27 @@
         let currentStatus = 'Healthy', mult = 1.0, chartInstance = null;
         let breathInterval, timerInterval;
 
-        // BREATHING EXERCISE LOGIC
+        // --- SOUND ENGINE ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playTone(freq, type) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type; // 'sine' for inhale, 'sawtooth' for exhale
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 1.5);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 1.5);
+        }
+
         function startBreathing(mins) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
             document.getElementById('breath-setup').classList.add('hidden');
             document.getElementById('breath-player').classList.remove('hidden');
-            
             let timeLeft = mins * 60;
-            let cycle = 0; // 0 inhale, 1 exhale
+            let cycle = 0; 
 
             const updateTimer = () => {
                 const m = Math.floor(timeLeft / 60);
@@ -157,16 +171,17 @@
                 if (cycle === 0) {
                     orb.classList.replace('exhale', 'inhale');
                     status.innerText = "Breathe In";
+                    playTone(440, 'sine'); // Soft, high tone
                     cycle = 1;
                 } else {
                     orb.classList.replace('inhale', 'exhale');
                     status.innerText = "Breathe Out";
+                    playTone(220, 'sine'); // Deep, low tone
                     cycle = 0;
                 }
             };
 
-            updateTimer();
-            animateCycle();
+            updateTimer(); animateCycle();
             timerInterval = setInterval(updateTimer, 1000);
             breathInterval = setInterval(animateCycle, 4000);
         }
@@ -178,9 +193,8 @@
             document.getElementById('breath-player').classList.add('hidden');
         }
 
-        // ORIGINAL LOGIC
+        // --- ORIGINAL LOGIC ---
         function toggleHistory() { document.getElementById('history-panel').classList.toggle('open'); loadHistory(); }
-
         function setCondition(name, val) {
             currentStatus = name; mult = val;
             document.querySelectorAll('.condition-card').forEach(c => c.classList.remove('active'));
@@ -194,26 +208,20 @@
             const height = parseInt(document.getElementById('user-height').value) / 100;
             const weight = parseInt(document.getElementById('user-weight').value);
             const years = currentStatus === 'Healthy' ? 0 : parseInt(document.getElementById('disease-years').value);
-
             const bmi = weight / (height * height);
             let bmiPenalty = bmi > 27 ? (bmi - 27) * 0.8 : 0;
             let finalLungAge = Math.round(age + bmiPenalty + (years * 0.9) + (mult * 4) + (air.aqi / 20));
-
             const history = JSON.parse(localStorage.getItem('lungHistory') || '[]');
             history.unshift({ age: finalLungAge, date: new Date().toLocaleTimeString(), condition: currentStatus });
             localStorage.setItem('lungHistory', JSON.stringify(history.slice(0, 10)));
-
             document.getElementById('empty-state').classList.add('hidden');
             document.getElementById('result-view').classList.remove('hidden');
             document.getElementById('disp-lung').innerText = finalLungAge;
-            
             let reasons = [];
             if (air.aqi > 50) reasons.push(`💨 <b>Air Pollution:</b> The AQI level (${air.aqi}) is placing significant stress on your lung tissue.`);
             if (currentStatus !== 'Healthy') reasons.push(`🏥 <b>Condition Wear:</b> ${years} years of ${currentStatus} has affected bronchial elasticity.`);
             if (bmi > 27) reasons.push(`⚖️ <b>Physical Load:</b> Elevated BMI creates physical resistance against diaphragm expansion.`);
-            
             document.getElementById('reasons-container').innerHTML = reasons.map(r => `<div class="reason-card">${r}</div>`).join('');
-            
             const baseStress = air.aqi * mult;
             renderTrend(baseStress);
             lucide.createIcons();
