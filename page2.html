@@ -21,6 +21,15 @@
         #history-panel { transform: translateX(100%); transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
         #history-panel.open { transform: translateX(0); }
         .history-item { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 15px; margin-bottom: 12px; }
+
+        /* Breathing Animation */
+        .breath-orb { 
+            width: 100px; height: 100px; border-radius: 50%; 
+            background: radial-gradient(circle, #3b82f6 0%, transparent 70%); 
+            margin: 20px auto; transition: transform 4s ease-in-out; 
+        }
+        .inhale { transform: scale(1.8); }
+        .exhale { transform: scale(1.0); }
     </style>
 </head>
 <body class="p-6 md:p-12">
@@ -30,8 +39,7 @@
             <h2 class="text-3xl font-black uppercase italic">Analysis <span class="text-blue-500">Log</span></h2>
             <button onclick="toggleHistory()" class="p-2 hover:bg-white/10 rounded-full"><i data-lucide="x"></i></button>
         </div>
-        <div id="history-list">
-            </div>
+        <div id="history-list"></div>
         <button onclick="clearHistory()" class="w-full mt-6 text-red-400 text-sm font-bold uppercase tracking-widest opacity-50 hover:opacity-100">Clear All Records</button>
     </div>
 
@@ -45,6 +53,26 @@
                 <button onclick="toggleHistory()" class="bg-white/5 border border-white/10 px-6 py-3 rounded-2xl flex items-center gap-3 font-bold hover:bg-white/10 transition-all">
                     <i data-lucide="history" class="w-6 h-6"></i> View History
                 </button>
+            </div>
+
+            <div class="glass p-8 rounded-[3rem] border-l-8 border-emerald-500">
+                <h2 class="text-2xl font-black uppercase italic mb-4 flex items-center gap-3">
+                    <i data-lucide="wind" class="text-emerald-400"></i> Lung Recovery
+                </h2>
+                
+                <div id="breath-setup" class="grid grid-cols-4 gap-2 mb-4">
+                    <button onclick="startBreathing(2)" class="bg-white/5 p-2 rounded-xl text-sm font-bold hover:bg-emerald-500/20">2m</button>
+                    <button onclick="startBreathing(3)" class="bg-white/5 p-2 rounded-xl text-sm font-bold hover:bg-emerald-500/20">3m</button>
+                    <button onclick="startBreathing(4)" class="bg-white/5 p-2 rounded-xl text-sm font-bold hover:bg-emerald-500/20">4m</button>
+                    <button onclick="startBreathing(5)" class="bg-white/5 p-2 rounded-xl text-sm font-bold hover:bg-emerald-500/20">5m</button>
+                </div>
+
+                <div id="breath-player" class="hidden text-center">
+                    <div id="orb" class="breath-orb exhale"></div>
+                    <p id="breath-status" class="text-xl font-bold text-emerald-400 uppercase tracking-widest mt-2">Get Ready</p>
+                    <p id="timer-display" class="text-3xl font-mono mt-2 text-white/50">00:00</p>
+                    <button onclick="stopBreathing()" class="mt-4 text-xs uppercase text-red-400 font-black">End Session</button>
+                </div>
             </div>
             
             <div class="glass p-10 rounded-[3rem] space-y-8">
@@ -105,7 +133,52 @@
     <script>
         lucide.createIcons();
         let currentStatus = 'Healthy', mult = 1.0, chartInstance = null;
+        let breathInterval, timerInterval;
 
+        // BREATHING EXERCISE LOGIC
+        function startBreathing(mins) {
+            document.getElementById('breath-setup').classList.add('hidden');
+            document.getElementById('breath-player').classList.remove('hidden');
+            
+            let timeLeft = mins * 60;
+            let cycle = 0; // 0 inhale, 1 exhale
+
+            const updateTimer = () => {
+                const m = Math.floor(timeLeft / 60);
+                const s = timeLeft % 60;
+                document.getElementById('timer-display').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+                if (timeLeft <= 0) stopBreathing();
+                timeLeft--;
+            };
+
+            const animateCycle = () => {
+                const orb = document.getElementById('orb');
+                const status = document.getElementById('breath-status');
+                if (cycle === 0) {
+                    orb.classList.replace('exhale', 'inhale');
+                    status.innerText = "Breathe In";
+                    cycle = 1;
+                } else {
+                    orb.classList.replace('inhale', 'exhale');
+                    status.innerText = "Breathe Out";
+                    cycle = 0;
+                }
+            };
+
+            updateTimer();
+            animateCycle();
+            timerInterval = setInterval(updateTimer, 1000);
+            breathInterval = setInterval(animateCycle, 4000);
+        }
+
+        function stopBreathing() {
+            clearInterval(timerInterval);
+            clearInterval(breathInterval);
+            document.getElementById('breath-setup').classList.remove('hidden');
+            document.getElementById('breath-player').classList.add('hidden');
+        }
+
+        // ORIGINAL LOGIC
         function toggleHistory() { document.getElementById('history-panel').classList.toggle('open'); loadHistory(); }
 
         function setCondition(name, val) {
@@ -126,7 +199,6 @@
             let bmiPenalty = bmi > 27 ? (bmi - 27) * 0.8 : 0;
             let finalLungAge = Math.round(age + bmiPenalty + (years * 0.9) + (mult * 4) + (air.aqi / 20));
 
-            // SAVE TO HISTORY
             const history = JSON.parse(localStorage.getItem('lungHistory') || '[]');
             history.unshift({ age: finalLungAge, date: new Date().toLocaleTimeString(), condition: currentStatus });
             localStorage.setItem('lungHistory', JSON.stringify(history.slice(0, 10)));
