@@ -21,13 +21,14 @@
         #history-panel.open { transform: translateX(0); }
         .history-item { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 15px; margin-bottom: 12px; }
 
+        /* Breathing Orb Animation */
         .breath-orb { 
             width: 100px; height: 100px; border-radius: 50%; 
             background: radial-gradient(circle, #3b82f6 0%, transparent 70%); 
-            margin: 20px auto; transition: transform 4s ease-in-out; 
+            margin: 20px auto; transition: transform 4s ease-in-out, opacity 4s ease-in-out; 
         }
-        .inhale { transform: scale(1.8); }
-        .exhale { transform: scale(1.0); }
+        .inhale { transform: scale(1.8); opacity: 1; }
+        .exhale { transform: scale(1.0); opacity: 0.4; }
     </style>
 </head>
 <body class="p-6 md:p-12">
@@ -55,9 +56,9 @@
             <div class="glass p-8 rounded-[3rem] border-l-8 border-emerald-500">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-2xl font-black uppercase italic flex items-center gap-3">
-                        <i data-lucide="wind" class="text-emerald-400"></i> Recovery
+                        <i data-lucide="wind" class="text-emerald-400"></i> Recovery Mode
                     </h2>
-                    <i data-lucide="volume-2" class="w-5 h-5 text-emerald-500/50"></i>
+                    <span id="audio-indicator" class="text-[10px] font-bold text-emerald-500/50 uppercase tracking-widest">Sound Active</span>
                 </div>
                 
                 <div id="breath-setup" class="grid grid-cols-4 gap-2 mb-4">
@@ -135,23 +136,43 @@
         let currentStatus = 'Healthy', mult = 1.0, chartInstance = null;
         let breathInterval, timerInterval;
 
-        // --- SOUND ENGINE ---
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        function playTone(freq, type) {
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = type; // 'sine' for inhale, 'sawtooth' for exhale
-            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 1.5);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start();
-            osc.stop(audioCtx.currentTime + 1.5);
+        // --- ENHANCED AUDIO ENGINE ---
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx;
+
+        function playBreathSound(type) {
+            if (!audioCtx) audioCtx = new AudioContext();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            if (type === 'inhale') {
+                // Rising tone for inhale
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(300, audioCtx.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 3.5);
+                gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+                gainNode.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + 0.5);
+                gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 3.8);
+            } else {
+                // Falling deeper tone for exhale
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(500, audioCtx.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 3.5);
+                gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+                gainNode.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + 0.2);
+                gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 3.8);
+            }
+
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 4);
         }
 
         function startBreathing(mins) {
-            if (audioCtx.state === 'suspended') audioCtx.resume();
             document.getElementById('breath-setup').classList.add('hidden');
             document.getElementById('breath-player').classList.remove('hidden');
             let timeLeft = mins * 60;
@@ -171,12 +192,12 @@
                 if (cycle === 0) {
                     orb.classList.replace('exhale', 'inhale');
                     status.innerText = "Breathe In";
-                    playTone(440, 'sine'); // Soft, high tone
+                    playBreathSound('inhale');
                     cycle = 1;
                 } else {
                     orb.classList.replace('inhale', 'exhale');
                     status.innerText = "Breathe Out";
-                    playTone(220, 'sine'); // Deep, low tone
+                    playBreathSound('exhale');
                     cycle = 0;
                 }
             };
@@ -193,7 +214,7 @@
             document.getElementById('breath-player').classList.add('hidden');
         }
 
-        // --- ORIGINAL LOGIC ---
+        // --- ORIGINAL ANALYTICS LOGIC ---
         function toggleHistory() { document.getElementById('history-panel').classList.toggle('open'); loadHistory(); }
         function setCondition(name, val) {
             currentStatus = name; mult = val;
